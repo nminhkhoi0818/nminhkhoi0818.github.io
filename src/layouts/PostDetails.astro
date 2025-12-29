@@ -4,6 +4,7 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Tag from "@/components/Tag.astro";
+import PasswordModal from "@/components/PasswordModal.astro";
 import Datetime from "@/components/Datetime.astro";
 import EditPost from "@/components/EditPost.astro";
 import ShareLinks from "@/components/ShareLinks.astro";
@@ -14,6 +15,7 @@ import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
+import crypto from "crypto";
 
 export interface Props {
   post: CollectionEntry<"blog">;
@@ -34,6 +36,22 @@ const {
   tags,
   hideEditPost,
 } = post.data;
+
+// Password protection: support `protected`, `passwordHash` or `password` in frontmatter
+const isProtected = Boolean(
+  post.data.protected || post.data.password || post.data.passwordHash
+);
+
+let passwordHash: string | undefined;
+if (post.data.passwordHash) {
+  passwordHash = post.data.passwordHash;
+} else if (post.data.password) {
+  // Hash the provided plaintext password server-side so the client only sees a hash
+  passwordHash = crypto
+    .createHash("sha256")
+    .update(String(post.data.password))
+    .digest("hex");
+}
 
 const { Content } = await render(post);
 
@@ -113,11 +131,22 @@ const nextPost =
     <article
       id="article"
       class="app-prose mx-auto mt-8 max-w-app prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)"
+      style={isProtected ? "display:none" : undefined}
     >
       <Content />
     </article>
 
     <hr class="my-8 border-dashed" />
+
+    {
+      isProtected && passwordHash ? (
+        <PasswordModal
+          passwordHash={passwordHash}
+          storageKey={`post-unlock-${post.id}`}
+          targetId="article"
+        />
+      ) : null
+    }
 
     <EditPost class="sm:hidden" {hideEditPost} {post} />
 

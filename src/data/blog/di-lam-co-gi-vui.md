@@ -8,6 +8,9 @@ featured: true
 draft: false
 tags:
   - docs
-description:
-   ...
+description: ...
+protected: true
+password: "123"
 ---
+
+Xin chao
